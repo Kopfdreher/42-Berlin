@@ -10,16 +10,28 @@
 /*                                                                            */
 /* ************************************************************************** */
 
-#include <limits.h>
+#include <stdint.h>
+#include <stdlib.h>
 
-void *calloc(size_t nmemb, size_t size)
+void	*ft_memset(void *s, int c, size_t n)
+{
+	unsigned char *ptr;
+
+	ptr = (unsigned char *)s;
+	while (n--)
+		*ptr++ = (unsigned char)c;
+	return (s);
+}
+
+void	*ft_calloc(size_t nmemb, size_t size)
 {
 	void	*ptr;
-	if (nmemb * size < INT_MAX)
+
+	if (size && nmemb > SIZE_MAX/size) // overflow check with division
 		return (NULL);
 	ptr = malloc(nmemb * size);
 	if (ptr == NULL)
 		return (NULL);
-//check for SIZE_MAX and the hints on the exercise pdfs
-	//
-	//
+	ft_memset(ptr, 0, nmemb * size);
+	return (ptr);
+}
