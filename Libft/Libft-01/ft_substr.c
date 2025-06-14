@@ -9,8 +9,10 @@
 /*   Updated: 2025/06/13 20:35:54 by sgavrilo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
+/*   substr - Substring                                                       */
 
 #include <stdlib.h>
+#include <stdio.h>
 
 size_t	ft_strlen(const char *s)
 {
@@ -31,9 +33,15 @@ char 	*ft_substr(char const *s, unsigned int start, size_t len)
 	if (!s)		// checks if Input is NULL
 		return (NULL);	
 	if (start >= ft_strlen(s))
-		return (""); <- Send an empty string back with calloc
+	{
+		sub = malloc(sizeof(char));
+		if (!sub)
+			return (NULL);
+		sub[0] = '\0';
+		return (sub);	// returns a pointer to an empty string 
+	}
 	mem_len = ft_strlen(s) - start;
-	if (mem_len < len)
+	if (mem_len > len)
 		mem_len = len;
 	sub = malloc(mem_len + 1);
 	if (!sub)	// allocation succeded?
@@ -47,3 +55,20 @@ char 	*ft_substr(char const *s, unsigned int start, size_t len)
 	sub[i] = '\0';
 	return (sub);
 }
+/*
+int	main()
+{
+	char	*str = malloc(11 * sizeof(char));
+	int	i = -1;
+	char	*sub;
+
+
+	while (++i < 10)
+		str[i] = i + 48;
+	str[i] = '\0';
+	sub = ft_substr(str, 4, 4);
+	printf("%s", sub);
+	free(str);
+	free(sub);
+}
+*/
