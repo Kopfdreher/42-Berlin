@@ -9,30 +9,34 @@
 /*   Updated: 2025/06/03 19:09:35 by sgavrilo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
+/*   memmove - Memory Move / Copy Bytes                                       */
 
-#include <string.h>
+#include "libft.h"
 
 void	*ft_memmove(void *dest, const void *src, size_t n)
 {
-	size_t			i;
-	unsigned char	*cpy;
+	size_t				i;
+	unsigned char		*d;
+	const unsigned char	*s;
 
-	i = 0;
-	while (i < n)
+	if (dest == src || n == 0)
+		return (dest);
+	d = (unsigned char *)dest;
+	s = (const unsigned char *)src;
+	if (d < s)
 	{
-		cpy[i] = ((unsigned char *)src)[i];
-		((unsigned char *)dest)[i] = cpy[i];
-		i++;
+		i = 0;
+		while (i < n)
+		{
+			d[i] = s[i];
+			i++;
+		}
 	}
-	return ((void *)dest);
+	else
+	{
+		i = n;
+		while (i-- > 0)
+			d[i] = s[i];
+	}
+	return (dest);
 }
-/*
-int	main(void)
-{
-	char dest[] = "0000000";
-	char src[] = "Hello";
-	
-	ft_memmove(dest, src, 3);
-	memmove(dest, src, 5);
-}
-*/
