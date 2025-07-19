@@ -24,21 +24,23 @@ char	*read_ft(int fd, char *stash)
 	while (bytes_read)
 	{
 		bytes_read = read(fd, buffer, BUFFER_SIZE);
+		if (bytes_read == -1)
+			return (free(buffer), free(stash), NULL);
 		buffer[bytes_read] = '\0';
 		stash = ft_strjoin(stash, buffer);
-		if (ft_strchr(buffer, '\n'))
+		if (!stash || ft_strchr(buffer, '\n'))
 			break ;
 	}
 	free(buffer);
 	return (stash);
 }
 
-char	*get_current_line(char *stash)
+char	*ft_get_line(char *stash)
 {
 	return (ft_strpardup(stash, ft_linelen(stash)));
 }
 
-char	*get_rest(char *stash)
+char	*ft_get_rest(char *stash)
 {
 	char *rest;
 
@@ -64,15 +66,28 @@ char	*get_next_line(int fd)
 	static char	*stash;
 	char		*line;
 
-	if (!stash)
+	if (fd < 0 || BUFFER_SIZE <= 0)
 	{
+		if (stash)
+			free(stash);
+		return (NULL);
+	}
+	if (!stash)
 		stash = ft_calloc(1, 1);
+	if (!ft_strchr(stash, '\n'))
+	{
+		stash = read_ft(fd, stash);
 		if (!stash)
 			return (NULL);
 	}
-	if (!ft_strchr(stash, '\n'))
-		stash = read_ft(fd, stash);
-	line = get_current_line(stash);
-	stash = get_rest(stash);
+	line = ft_get_line(stash);
+	stash = ft_get_rest(stash);
+	if (!*line)
+	{
+		free(line);
+		free(stash);
+		stash = NULL;
+		return (NULL);
+	}
 	return (line);
 }
