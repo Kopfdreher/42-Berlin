@@ -11,29 +11,23 @@
 /* ************************************************************************** */
 
 #include "libft.h"
-/*
-void	*ft_memset(void *s, int c, size_t n)
-{
-	unsigned char *ptr;
 
-	ptr = (unsigned char *)s;
-	while (n--)
-		*ptr++ = (unsigned char)c;
-	return (s);
-}
-*/
 void	*ft_calloc(size_t nmemb, size_t size)
 {
-	void	*ptr;
-	size_t	bytes;
-
+	unsigned char	*ptr;
+	size_t			bytes;
+	size_t			i;
 	if (size && nmemb > SIZE_MAX / size)
 		return (NULL);
 	ptr = malloc(nmemb * size);
 	if (ptr == NULL)
 		return (NULL);
 	bytes = nmemb * size;
-	while (bytes--)
-		*ptr++ = 0;
+	i = 0;
+	while (i < bytes)
+	{
+		ptr[i] = '\0';
+		i++;
+	}
 	return (ptr);
 }
