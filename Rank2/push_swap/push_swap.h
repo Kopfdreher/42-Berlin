@@ -13,6 +13,7 @@
 #ifndef PUSH_SWAP_H
 # define PUSH_SWAP_H
 
+void	*safe_malloc(size_t size, t_list *stack);
 int	input_has_errors(int argc, char *argv[]);
 
 #endif
