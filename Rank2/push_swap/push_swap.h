@@ -30,12 +30,12 @@ typedef struct s_path
 /* Movement Functions */
 t_path	path_finding_of(t_path path, t_list **a, t_list **b);
 void	movement_table(t_path *path, t_list **a, t_list **b);
-void	move_rr(t_path *path, t_list **a, t_list **b);
-void	move_ra(t_path *path, t_list **a, t_list **b);
-void	move_rb(t_path *path, t_list **a, t_list **b);
 void	move_rrr(t_path *path, t_list **a, t_list **b);
-void	move_rra(t_path *path, t_list **a, t_list **b);
-void	move_rrb(t_path *path, t_list **a, t_list **b);
+void	move_rrb(t_path *path, t_list **b);
+void	move_rra(t_path *path, t_list **a);
+void	move_rr(t_path *path, t_list **a, t_list **b);
+void	move_rb(t_path *path, t_list **b);
+void	move_ra(t_path *path, t_list **a);
 
 /* Sorting Functions */
 void	dump_sort(t_list **a, t_list **b);

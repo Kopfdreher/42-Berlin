@@ -6,7 +6,7 @@
 /*   By: sgavrilo <sgavrilo@student.42berlin.de>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/22 18:24:59 by sgavrilo          #+#    #+#             */
-/*   Updated: 2025/11/24 17:59:04 by sgavrilo         ###   ########.fr       */
+/*   Updated: 2025/11/24 19:47:06 by sgavrilo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -18,15 +18,15 @@ void	movement_table(t_path *path, t_list **a, t_list **b)
 	while (path->ra && path->rb)
 		move_rr(path, a, b);
 	while (path->ra)
-		move_ra(path, a, b);
+		move_ra(path, a);
 	while (path->rb)
-		move_rb(path, a, b);
+		move_rb(path, b);
 	while (path->rra && path->rrb)
 		move_rrr(path, a, b);
 	while (path->rra)
-		move_rra(path, a, b);
+		move_rra(path, a);
 	while (path->rrb)
-		move_rrb(path, a, b);
+		move_rrb(path, b);
 }
 
 t_path	*new_path(void)
