@@ -6,7 +6,7 @@
 /*   By: sgavrilo <sgavrilo@student.42berlin.de>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/11/23 20:55:20 by sgavrilo          #+#    #+#             */
-/*   Updated: 2025/11/23 21:08:49 by sgavrilo         ###   ########.fr       */
+/*   Updated: 2025/12/17 22:35:28 by sgavrilo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -22,7 +22,7 @@ static int	ft_issign(char c)
 
 static int	ft_isspace(char c)
 {
-	if (c == ' ' || c == '\f' || c == '\n'
+	if (c == '0' || c == ' ' || c == '\f' || c == '\n'
 		|| c == '\r' || c == '\t' || c == '\v')
 		return (1);
 	else
