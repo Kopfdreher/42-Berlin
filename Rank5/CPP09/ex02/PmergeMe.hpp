@@ -2,9 +2,19 @@
 #define PMERGEME_HPP
 
 #include <deque>
-#include <string>
 #include <sys/time.h>
 #include <vector>
+
+#ifndef COMPARE
+#define COMPARE false
+#endif
+
+#define COMPARISONS                                                            \
+  if (!COMPARE) {                                                              \
+  } else                                                                       \
+    std::cout << "Comparisons: " << comp_count << std::endl;
+
+typedef unsigned int uInt;
 
 class PmergeMe {
 public:
@@ -14,46 +24,38 @@ public:
   ~PmergeMe();
 
   void processInput(int argc, char **argv);
-  static size_t getVecCompCount();
-  static size_t getDeqCompCount();
+  static uInt comp_count;
 
 private:
-  struct ElementV {
-    int value;
-    std::vector<ElementV> sub_chain;
-    static size_t comp_count;
-
-    bool operator<(const ElementV &other) const {
-      comp_count++;
-      return value < other.value;
-    }
-  };
-
-  struct ElementD {
-    int value;
-    std::deque<ElementD> sub_chain;
-    static size_t comp_count;
-
-    bool operator<(const ElementD &other) const {
-      comp_count++;
-      return value < other.value;
-    }
-  };
-
   std::vector<int> v;
   std::deque<int> d;
 
   bool parseInput(int argc, char **argv);
   double calculateTime(struct timeval &start, struct timeval &end);
-  void upperBoundInsert(std::vector<ElementV> &main_chain, ElementV &value);
 
-    // Vector Implementation
-    void sortVecContainer(std::vector<ElementV> & arr);
-    std::vector<size_t> generateJSeqVec(size_t n);
+  // FenwickTree
+  uInt lowbit(uInt i) const;
+  void addShift(uInt *bit, uInt bitSize, uInt pairIdx) const;
+  uInt getPos(const uInt *bit, uInt pairIdx) const;
+  uInt findPairIndex(const uInt *bit, uInt totalPairs, uInt insertedAt) const;
 
-    // Deque Implementation
-    void sortDeqContainer(std::deque<ElementD> & arr);
-    std::deque<size_t> generateJSeqDeq(size_t n);
-  };
+  // Vector
+  void sortVec(uInt block);
+  void pairBlocksVec(uInt block, uInt numPairs);
+  uInt binaryInsertVec(std::vector<uInt> &mainChain, uInt start, uInt block,
+                       uInt high);
+  void buildChainVec(std::vector<uInt> &mainChain, uInt block, uInt numPairs,
+                     bool hasOdd);
+  void reconstructVec(std::vector<uInt> &mainChain, uInt block);
+
+  // Deque
+  void sortDeq(uInt block);
+  void pairBlocksDeq(uInt block, uInt numPairs);
+  uInt binaryInsertDeq(std::deque<uInt> &mainChain, uInt start, uInt block,
+                       uInt high);
+  void buildChainDeq(std::deque<uInt> &mainChain, uInt block, uInt numPairs,
+                     bool hasOdd);
+  void reconstructDeq(std::deque<uInt> &mainChain, uInt block);
+};
 
 #endif

@@ -4,12 +4,7 @@
 #include <cstdlib>
 #include <iostream>
 
-size_t PmergeMe::ElementV::comp_count = 0;
-size_t PmergeMe::ElementD::comp_count = 0;
-
-size_t PmergeMe::getVecCompCount() { return ElementV::comp_count; }
-
-size_t PmergeMe::getDeqCompCount() { return ElementD::comp_count; }
+uInt PmergeMe::comp_count = 0;
 
 PmergeMe::PmergeMe() {}
 
@@ -55,251 +50,316 @@ void PmergeMe::processInput(int argc, char **argv) {
   }
 
   std::cout << "Before: ";
-  for (size_t i = 0; i < v.size(); ++i) {
+  for (uInt i = 0; i < v.size(); ++i) {
     std::cout << v[i] << (i + 1 < v.size() ? " " : "");
   }
   std::cout << std::endl;
 
   // Vector processing
-  std::vector<ElementV> vecElements;
-  vecElements.reserve(v.size());
-  for (size_t i = 0; i < v.size(); ++i) {
-    ElementV el;
-    el.value = v[i];
-    vecElements.push_back(el);
-  }
 
   struct timeval startVec, endVec;
   gettimeofday(&startVec, NULL);
-  sortVecContainer(vecElements);
+  sortVec(1);
   gettimeofday(&endVec, NULL);
 
-  for (size_t i = 0; i < vecElements.size(); ++i) {
-    v[i] = vecElements[i].value;
-  }
+  double timeVec = calculateTime(startVec, endVec);
 
   std::cout << "After: ";
-  for (size_t i = 0; i < v.size(); ++i) {
+  for (uInt i = 0; i < v.size(); ++i) {
     std::cout << v[i] << (i + 1 < v.size() ? " " : "");
   }
   std::cout << std::endl;
 
-  double timeVec = calculateTime(startVec, endVec);
-
   std::cout << "Time to process a range of " << v.size()
-            << " elements with std::vector : " << timeVec << " us\n"
-            << "Comparisons: " << getVecCompCount() << std::endl;
+            << " elements with std::vector : " << timeVec << " us" << std::endl;
 
   // Deque processing
-  /*
-  std::deque<ElementD> deqElements;
-  for (size_t i = 0; i < d.size(); ++i) {
-    ElementD el;
-    el.value = d[i];
-    deqElements.push_back(el);
-  }
 
   struct timeval startDeq, endDeq;
   gettimeofday(&startDeq, NULL);
-  sortDeqContainer(deqElements);
+  sortDeq(1);
   gettimeofday(&endDeq, NULL);
-
-  for (size_t i = 0; i < deqElements.size(); ++i) {
-    d[i] = deqElements[i].value;
-  }
 
   double timeDeq = calculateTime(startDeq, endDeq);
 
   std::cout << "Time to process a range of " << d.size()
-            << " elements with std::deque : " << timeDeq << " us\n" <<
-  "Comparisons: " << getDeqCompCount() << std::endl;
-  */
+            << " elements with std::deque : " << timeDeq << " us" << std::endl;
+
+  COMPARISONS
 }
 
-// VECTOR
+// Fenwick Tree ----------------------------------------------------------------
 
-std::vector<size_t> PmergeMe::generateJSeqVec(size_t n) {
-  std::vector<size_t> seq;
-  if (n == 0)
-    return seq;
+uInt PmergeMe::lowbit(uInt i) const { return i & (~i + 1); }
 
-  size_t last = 1;
-  size_t curr = 3;
+void PmergeMe::addShift(uInt *bit, uInt bitSize, uInt pairIdx) const {
+  for (uInt i = pairIdx + 1; i < bitSize; i += lowbit(i)) {
+    bit[i] += 1;
+  }
+}
 
-  while (last < n) {
-    size_t upper = std::min(curr, n);
-    for (size_t i = upper; i > last; --i) {
-      seq.push_back(i - 1); // 0-based indexing
+uInt PmergeMe::getPos(const uInt *bit, uInt pairIdx) const {
+  uInt shift = 0;
+  for (uInt i = pairIdx + 1; i > 0; i -= lowbit(i)) {
+    shift += bit[i];
+  }
+  return pairIdx + 2 + shift;
+}
+
+uInt PmergeMe::findPairIndex(const uInt *bit, uInt high,
+                             uInt insertedAt) const {
+  uInt low = 0;
+  while (low < high) {
+    uInt mid = low + (high - low) / 2;
+    if (getPos(bit, mid) < insertedAt) {
+      low = mid + 1;
+    } else {
+      high = mid;
     }
-    size_t next = curr + 2 * last;
+  }
+  return low;
+}
+
+// VECTOR ----------------------------------------------------------------------
+
+void PmergeMe::sortVec(uInt block) {
+  uInt numBlocks = v.size() / block;
+  if (numBlocks < 2)
+    return;
+  bool hasOdd = numBlocks % 2;
+  uInt numPairs = numBlocks - hasOdd;
+
+  // Step 1: Pair up adjacent blocks
+  pairBlocksVec(block, numPairs);
+
+  // Step 2: Recursive step with doubled block size
+  sortVec(block * 2);
+
+  // Step 3: Build mainChain and pend using block indices
+  std::vector<uInt> mainChain;
+  buildChainVec(mainChain, block, numPairs, hasOdd);
+
+  // Step 4: Reconstruct v for this level
+  reconstructVec(mainChain, block);
+}
+
+void PmergeMe::pairBlocksVec(uInt block, uInt numPairs) {
+  for (uInt i = 0; i < numPairs; i += 2) {
+    uInt leftLast = (i + 1) * block - 1;
+    uInt rightLast = (i + 2) * block - 1;
+
+    comp_count++;
+    if (v[leftLast] > v[rightLast]) {
+      std::swap_ranges(v.begin() + i * block, v.begin() + (i + 1) * block,
+                       v.begin() + (i + 1) * block);
+    }
+  }
+}
+
+void PmergeMe::buildChainVec(std::vector<uInt> &mainChain, uInt block,
+                             uInt numPairs, bool hasOdd) {
+  std::vector<uInt> pend;
+
+  // Initialize mainChain with [b1, a1]
+  mainChain.push_back(0 * block); // b1
+  mainChain.push_back(1 * block); // a1
+  // Populate pend with b_k and mainChain with a_k
+  for (uInt i = 2; i < numPairs; i += 2) {
+    pend.push_back(i * block);            // b_k
+    mainChain.push_back((i + 1) * block); // a_k
+  }
+
+  uInt bit[1800] = {0};
+  static const uInt jNums[] = {1,  3,   5,   11,  21,   43,
+                               85, 171, 341, 683, 1365, 2731};
+  uInt last = 1;
+  uInt totalBCount = static_cast<uInt>(pend.size() + 1 + hasOdd);
+
+  for (size_t k = 1; k < sizeof(jNums) / sizeof(jNums[0]); ++k) {
+    uInt curr = jNums[k];
+    if (last >= totalBCount)
+      break;
+
+    uInt upper = std::min(curr, totalBCount);
+    for (uInt b = upper; b > last; --b) {
+      if (b < 2)
+        continue;
+      uInt start;
+      uInt limit;
+      if (hasOdd && b == totalBCount) {
+        start = numPairs * block;
+        limit = mainChain.size();
+      } else {
+        start = pend[b - 2];
+        limit = getPos(bit, b - 2);
+      }
+
+      // Perform bounded binary insertion
+      uInt insertedAt = binaryInsertVec(mainChain, start, block, limit);
+
+      // Map inserted position back to a pair index and update insertion offsets
+      uInt pairIdx = findPairIndex(bit, numPairs, insertedAt);
+      if (pairIdx < numPairs)
+        addShift(bit, numPairs, pairIdx);
+    }
     last = curr;
-    curr = next;
   }
-  return seq;
 }
 
-void PmergeMe::sortVecContainer(std::vector<ElementV> &arr) {
-  if (arr.size() <= 1)
-    return;
-
-  bool has_straggler = (arr.size() % 2 != 0);
-  ElementV straggler;
-  if (has_straggler) {
-    straggler = arr.back();
-    arr.pop_back();
+void PmergeMe::reconstructVec(std::vector<uInt> &mainChain, uInt block) {
+  uInt cache[3200];
+  uInt destIdx = 0;
+  for (uInt i = 0; i < mainChain.size(); ++i) {
+    uInt srcStart = mainChain[i];
+    std::copy(v.begin() + srcStart, v.begin() + srcStart + block,
+              cache + destIdx);
+    destIdx += block;
   }
+  // Copy back into v
+  std::copy(cache, cache + mainChain.size() * block, v.begin());
+}
 
-  // Step 1: Pair up adjacent elements, attach smaller to larger's sub_chain
-  std::vector<ElementV> pairs;
-  pairs.reserve(arr.size() / 2);
+uInt PmergeMe::binaryInsertVec(std::vector<uInt> &mainChain, uInt start,
+                               uInt block, uInt high) {
+  int target_val = v[start + block - 1];
+  uInt low = 0;
 
-  for (size_t i = 0; i < arr.size(); i += 2) {
-    if (arr[i].value < arr[i + 1].value) {
-      arr[i + 1].sub_chain.push_back(arr[i]);
-      pairs.push_back(arr[i + 1]);
+  while (low < high) {
+    uInt mid = low + (high - low) / 2;
+    comp_count++;
+
+    uInt mid_start = mainChain[mid];
+    int mid_val = v[mid_start + block - 1];
+
+    if (mid_val < target_val) {
+      low = mid + 1;
     } else {
-      arr[i].sub_chain.push_back(arr[i + 1]);
-      pairs.push_back(arr[i]);
+      high = mid;
     }
   }
 
-  // Step 2: Recursively sort main chain pairs
-  sortVecContainer(pairs);
-
-  // Step 3: Reconstruct Main Chain and Pend
-  std::vector<ElementV> main_chain;
-  std::vector<ElementV> pend;
-  main_chain.reserve(arr.size() + 1);// (has_straggler ? 1 : 0));
-  pend.reserve(pairs.size());
-
-  for (size_t i = 0; i < pairs.size(); ++i) {
-    ElementV pend_elem = pairs[i].sub_chain.back();
-    pairs[i].sub_chain.pop_back();
-
-    main_chain.push_back(pairs[i]);
-    pend.push_back(pend_elem);
-  }
-
-  // b_1 (pend[0]) is guaranteed <= a_1 (main_chain[0]), insert at index 0
-  main_chain.insert(main_chain.begin(), pend[0]);
-
-  // Step 4: Jacobsthal Group Insertions
-  std::vector<size_t> jacob_order = generateJSeqVec(pend.size());
-
-  for (size_t i = 0; i < jacob_order.size(); ++i) {
-    size_t pend_idx = jacob_order[i];
-    if (pend_idx == 0)
-      continue; // pend[0] already inserted
-    ElementV item = pend[pend_idx];
-
-    std::vector<ElementV>::iterator bound_it = main_chain.end();
-    for (std::vector<ElementV>::iterator it = main_chain.begin(); it != main_chain.end(); ++it) {
-	    if (it->value == pairs[pend_idx].value) {
-		    bound_it = it;
-		    break;
-	    }
-    }
-
-    std::vector<ElementV>::iterator pos =
-        std::upper_bound(main_chain.begin(), bound_it, item);
-
-    main_chain.insert(pos, item);
-  }
-
-  // Step 5: Insert straggler if odd length
-  if (has_straggler) {
-    std::vector<ElementV>::iterator pos =
-        std::upper_bound(main_chain.begin(), main_chain.end(), straggler);
-    main_chain.insert(pos, straggler);
-  }
-
-  arr = main_chain;
+  mainChain.insert(mainChain.begin() + low, start);
+  return low;
 }
 
-// DEQUE
-/*
-std::deque<size_t> PmergeMe::generateJSeqDeq(size_t n) {
-  std::deque<size_t> seq;
-  if (n == 0)
-    return seq;
+// DEQUE -----------------------------------------------------------------------
 
-  size_t last = 1;
-  size_t curr = 3;
-
-  while (last < n) {
-    size_t upper = std::min(curr, n);
-    for (size_t i = upper; i > last; --i) {
-      seq.push_back(i - 1);
-    }
-    size_t temp = curr;
-    curr = curr + 2 * last;
-    last = temp;
-  }
-  return seq;
-}
-
-void PmergeMe::sortDeqContainer(std::deque<ElementD> &arr) {
-  if (arr.size() <= 1)
+void PmergeMe::sortDeq(uInt block) {
+  uInt numBlocks = d.size() / block;
+  if (numBlocks < 2)
     return;
+  bool hasOdd = numBlocks % 2;
+  uInt numPairs = numBlocks - hasOdd;
 
-  bool has_straggler = (arr.size() % 2 != 0);
-  ElementD straggler;
-  if (has_straggler) {
-    straggler = arr.back();
-    arr.pop_back();
+  // Step 1: Pair up adjacent blocks
+  pairBlocksDeq(block, numPairs);
+
+  // Step 2: Recursive step with doubled block size
+  sortDeq(block * 2);
+
+  // Step 3: Build mainChain and pend using block indices
+  std::deque<uInt> mainChain;
+  buildChainDeq(mainChain, block, numPairs, hasOdd);
+
+  // Step 4: Reconstruct v for this level
+  reconstructDeq(mainChain, block);
+}
+
+void PmergeMe::pairBlocksDeq(uInt block, uInt numPairs) {
+  for (uInt i = 0; i < numPairs; i += 2) {
+    uInt leftLast = (i + 1) * block - 1;
+    uInt rightLast = (i + 2) * block - 1;
+
+    comp_count++;
+    if (d[leftLast] > d[rightLast]) {
+      std::swap_ranges(d.begin() + i * block, d.begin() + (i + 1) * block,
+                       d.begin() + (i + 1) * block);
+    }
+  }
+}
+
+void PmergeMe::buildChainDeq(std::deque<uInt> &mainChain, uInt block,
+                             uInt numPairs, bool hasOdd) {
+  std::deque<uInt> pend;
+
+  // Initialize mainChain with [b1, a1]
+  mainChain.push_back(0 * block); // b1
+  mainChain.push_back(1 * block); // a1
+  // Populate pend with b_k and mainChain with a_k
+  for (uInt i = 2; i < numPairs; i += 2) {
+    pend.push_back(i * block);            // b_k
+    mainChain.push_back((i + 1) * block); // a_k
   }
 
-  std::deque<ElementD> pairs;
-  for (size_t i = 0; i < arr.size(); i += 2) {
-    if (arr[i].value < arr[i + 1].value) {
-      arr[i + 1].sub_chain.push_back(arr[i]);
-      pairs.push_back(arr[i + 1]);
+  uInt bit[1800] = {0};
+  static const uInt jNums[] = {1,  3,   5,   11,  21,   43,
+                               85, 171, 341, 683, 1365, 2731};
+  uInt last = 1;
+  uInt totalBCount = static_cast<uInt>(pend.size() + 1 + hasOdd);
+
+  for (size_t k = 1; k < sizeof(jNums) / sizeof(jNums[0]); ++k) {
+    uInt curr = jNums[k];
+    if (last >= totalBCount)
+      break;
+
+    uInt upper = std::min(curr, totalBCount);
+    for (uInt b = upper; b > last; --b) {
+      if (b < 2)
+        continue;
+      uInt start;
+      uInt limit;
+      if (hasOdd && b == totalBCount) {
+        start = numPairs * block;
+        limit = mainChain.size();
+      } else {
+        start = pend[b - 2];
+        limit = getPos(bit, b - 2);
+      }
+
+      // Perform bounded binary insertion
+      uInt insertedAt = binaryInsertDeq(mainChain, start, block, limit);
+
+      // Map inserted position back to a pair index and update insertion offsets
+      uInt pairIdx = findPairIndex(bit, numPairs, insertedAt);
+      if (pairIdx < numPairs)
+        addShift(bit, numPairs, pairIdx);
+    }
+    last = curr;
+  }
+}
+
+void PmergeMe::reconstructDeq(std::deque<uInt> &mainChain, uInt block) {
+  uInt cache[3200];
+  uInt destIdx = 0;
+  for (uInt i = 0; i < mainChain.size(); ++i) {
+    uInt srcStart = mainChain[i];
+    std::copy(d.begin() + srcStart, d.begin() + srcStart + block,
+              cache + destIdx);
+    destIdx += block;
+  }
+  // Copy back into d
+  std::copy(cache, cache + mainChain.size() * block, d.begin());
+}
+
+uInt PmergeMe::binaryInsertDeq(std::deque<uInt> &mainChain, uInt start,
+                               uInt block, uInt high) {
+  int target_val = d[start + block - 1];
+  uInt low = 0;
+
+  while (low < high) {
+    uInt mid = low + (high - low) / 2;
+    comp_count++;
+
+    uInt mid_start = mainChain[mid];
+    int mid_val = d[mid_start + block - 1];
+
+    if (mid_val < target_val) {
+      low = mid + 1;
     } else {
-      arr[i].sub_chain.push_back(arr[i + 1]);
-      pairs.push_back(arr[i]);
+      high = mid;
     }
   }
 
-  sortDeqContainer(pairs);
-
-  std::deque<ElementD> main_chain;
-  std::deque<ElementD> pend;
-
-  for (size_t i = 0; i < pairs.size(); ++i) {
-    ElementD pend_elem = pairs[i].sub_chain.back();
-    pairs[i].sub_chain.pop_back();
-
-    main_chain.push_back(pairs[i]);
-    pend.push_back(pend_elem);
-  }
-
-  main_chain.push_front(pend[0]);
-
-  std::deque<size_t> jacob_order = generateJSeqDeq(pend.size());
-
-  for (size_t i = 0; i < jacob_order.size(); ++i) {
-    size_t pend_idx = jacob_order[i];
-    if (pend_idx == 0)
-      continue;
-
-    ElementD item = pend[pend_idx];
-
-    size_t search_bound =
-        std::min(pend_idx + main_chain.size(), main_chain.size());
-
-    std::deque<ElementD>::iterator bound_it = main_chain.begin() + search_bound;
-    std::deque<ElementD>::iterator pos =
-        std::upper_bound(main_chain.begin(), bound_it, item);
-
-    main_chain.insert(pos, item);
-  }
-
-  if (has_straggler) {
-    std::deque<ElementD>::iterator pos =
-        std::upper_bound(main_chain.begin(), main_chain.end(), straggler);
-    main_chain.insert(pos, straggler);
-  }
-
-  arr = main_chain;
+  mainChain.insert(mainChain.begin() + low, start);
+  return low;
 }
-*/
