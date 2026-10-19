@@ -55,6 +55,7 @@ char *strJoin(char *buf, char *add) {
 
 void fatal() {
   write(2, "Fatal error\n", 12);
+  close(sockFd);
   exit(1);
 }
 
